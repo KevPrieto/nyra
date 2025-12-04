@@ -3,9 +3,7 @@
 
 NYRA is a minimalist AI-powered tool that transforms vague ideas into clear, actionable roadmaps — helping you think better, plan faster, and build with direction.
 
-
-<img width="1024" height="1024" alt="e7acf9a2-c299-42ae-9873-587195ed6446" src="https://github.com/user-attachments/assets/c071afed-f0da-40ad-9b1a-bcc27a3ee460" />
-
+<img width="1024" height="1024" alt="nyra" src="https://github.com/user-attachments/assets/ff48f22f-74ee-4fcd-b707-eec4e6c2f8c8" />
 
 NYRA started with a simple frustration:
 ideas are easy… clarity is not.
@@ -20,7 +18,7 @@ Just clarity.
 
 <img width="1024" height="1024" alt="a1968abd-f21a-4cac-94cd-b954bc02f2a4" src="https://github.com/user-attachments/assets/291ddf59-abcf-4277-9ff5-323841578319" />
 
-🚀 What NYRA Does (MVP)
+### 🚀 What NYRA Does (MVP)
 
 NYRA takes a raw idea from the user — for example:
 
@@ -40,6 +38,10 @@ Stored locally (no login, no server, no database)
 
 All running on a clean, minimal, modern interface.
 
+<img width="1024" height="1024" alt="4" src="https://github.com/user-attachments/assets/245ffdf5-a4fd-43dd-9130-5fd31eeb783d" />
+
+<img width="1024" height="1024" alt="nyraroadmap_concept" src="https://github.com/user-attachments/assets/977857cb-3693-49ef-8c88-f2440b978849" />
+
 🧠 The Philosophy Behind NYRA
 
 NYRA is not a task manager.
@@ -55,7 +57,7 @@ AI is used as a copilot, not an autopilot.
 If the idea is vague, NYRA asks for more context.
 If the user wants control, NYRA stays out of the way.
 
-<img width="1024" height="1024" alt="nyra" src="https://github.com/user-attachments/assets/ff48f22f-74ee-4fcd-b707-eec4e6c2f8c8" />
+<img width="1024" height="1024" alt="e7acf9a2-c299-42ae-9873-587195ed6446" src="https://github.com/user-attachments/assets/c071afed-f0da-40ad-9b1a-bcc27a3ee460" />
 
 🏗️ Tech Stack
 
@@ -135,7 +137,6 @@ All will come after validation — not before.
 
 <img width="368" height="385" alt="image" src="https://github.com/user-attachments/assets/a6bf3dca-1927-40b1-9658-d7a4ca8566d8" />
 
-
 🧪 How to Run Locally
 npm install
 npm run dev
@@ -173,6 +174,7 @@ Phase 4 — Future Vision (Not in MVP)
 
 Mobile app, login, cloud sync, collaboration, encryption.
 
+
 🌱 Why This MVP Matters
 
 Because making progress in life starts with clarity.
@@ -180,6 +182,7 @@ NYRA is your starting point — not a productivity monster,
 not a complex ecosystem — but a simple tool to think better.
 
 This is version 0.1.
+
 Small, intentional, and genuinely helpful.
 
 More coming soon.
