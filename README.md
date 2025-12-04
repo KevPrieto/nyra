@@ -1,6 +1,11 @@
-NYRA — Productivity, reimagined.
+# NYRA — Productivity, reimagined.
+### Turn ideas into a roadmap. Instantly.
 
-![NYRA Banner](https://dummyimage.com/2000x500/05070a/00aaff&text=NYRA)
+NYRA is a minimalist AI-powered tool that transforms vague ideas into clear, actionable roadmaps — helping you think better, plan faster, and build with direction.
+
+
+<img width="1024" height="1024" alt="e7acf9a2-c299-42ae-9873-587195ed6446" src="https://github.com/user-attachments/assets/c071afed-f0da-40ad-9b1a-bcc27a3ee460" />
+
 
 NYRA started with a simple frustration:
 ideas are easy… clarity is not.
@@ -49,6 +54,8 @@ Help people think.
 AI is used as a copilot, not an autopilot.
 If the idea is vague, NYRA asks for more context.
 If the user wants control, NYRA stays out of the way.
+
+<img width="1024" height="1024" alt="nyra" src="https://github.com/user-attachments/assets/ff48f22f-74ee-4fcd-b707-eec4e6c2f8c8" />
 
 🏗️ Tech Stack
 
@@ -125,22 +132,9 @@ Sharing features
 All will come after validation — not before.
 
 🧩 Project Structure
-nyra/
- ├─ app/
- │   ├─ api/
- │   │   └─ generate-roadmap/
- │   │       └─ route.ts
- │   └─ page.tsx
- ├─ components/
- │   ├─ IdeaInput.tsx
- │   ├─ RoadmapView.tsx
- │   ├─ PhaseColumn.tsx
- │   └─ Toolbar.tsx
- ├─ lib/
- │   ├─ types.ts
- │   └─ localStorage.ts
- ├─ public/
- └─ README.md
+
+<img width="368" height="385" alt="image" src="https://github.com/user-attachments/assets/a6bf3dca-1927-40b1-9658-d7a4ca8566d8" />
+
 
 🧪 How to Run Locally
 npm install
@@ -189,3 +183,5 @@ This is version 0.1.
 Small, intentional, and genuinely helpful.
 
 More coming soon.
+
+![NYRA Banner](https://dummyimage.com/1800x420/0a0a0a/ffffff&text=NYRA+—+Productivity,+Reimagined.)
