@@ -1,4 +1,6 @@
-NYRA — The Minimalist Roadmap Builder for Clarity
+NYRA — Productivity, reimagined.
+
+![NYRA Banner](https://dummyimage.com/2000x500/05070a/00aaff&text=NYRA)
 
 NYRA started with a simple frustration:
 ideas are easy… clarity is not.
@@ -10,6 +12,8 @@ No dashboards.
 No complex productivity systems.
 
 Just clarity.
+
+<img width="1024" height="1024" alt="a1968abd-f21a-4cac-94cd-b954bc02f2a4" src="https://github.com/user-attachments/assets/291ddf59-abcf-4277-9ff5-323841578319" />
 
 🚀 What NYRA Does (MVP)
 
