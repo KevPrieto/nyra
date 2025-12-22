@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { useState } from "react";
 
 export interface Phase {
   name: string;
@@ -8,31 +8,34 @@ export interface Phase {
 }
 
 interface RoadmapProps {
-  phases: Phase[];
+  phases: Phase[] | null;
 }
 
 export default function Roadmap({ phases }: RoadmapProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
   if (!phases || phases.length === 0) {
     return (
-      <p className="text-gray-500 mt-10">
+      <p className="text-gray-500 text-sm">
         No roadmap generated yet.
       </p>
     );
   }
 
+  const activePhase = phases[activeIndex];
+
   return (
-    <div className="w-full max-w-4xl mt-16">
-      {/* Timeline */}
+    <section className="w-full max-w-4xl">
+      {/* ===== Timeline ===== */}
       <svg
         viewBox="0 0 1000 200"
         className="w-full h-40 mb-16"
       >
         <path
           d="M 50 100 Q 300 20, 500 100 T 950 100"
-          stroke="#3b82f6"
+          stroke="rgba(59,130,246,0.4)"
           strokeWidth="4"
           fill="none"
-          opacity="0.6"
         />
 
         {phases.map((phase, index) => {
@@ -41,14 +44,20 @@ export default function Roadmap({ phases }: RoadmapProps) {
               ? 500
               : 50 + (index / (phases.length - 1)) * 900;
 
+          const isActive = index === activeIndex;
+
           return (
-            <g key={index}>
+            <g
+              key={index}
+              onClick={() => setActiveIndex(index)}
+              className="cursor-pointer"
+            >
               <circle
                 cx={x}
                 cy={100}
-                r={16}
+                r={isActive ? 18 : 14}
                 fill="#0b0f19"
-                stroke="#3b82f6"
+                stroke={isActive ? "#60a5fa" : "#3b82f6"}
                 strokeWidth="3"
               />
               <text
@@ -65,7 +74,7 @@ export default function Roadmap({ phases }: RoadmapProps) {
                 y={140}
                 textAnchor="middle"
                 fontSize="14"
-                fill="#cbd5e1"
+                fill={isActive ? "#bfdbfe" : "#9ca3af"}
               >
                 {phase.name}
               </text>
@@ -74,26 +83,23 @@ export default function Roadmap({ phases }: RoadmapProps) {
         })}
       </svg>
 
-      {/* Details */}
-      <div className="space-y-10">
-        {phases.map((phase, index) => (
-          <div key={index}>
-            <h3 className="text-lg font-semibold text-blue-400 mb-3">
-              {index + 1}. {phase.name}
-            </h3>
-            <ul className="space-y-2 pl-4">
-              {phase.steps.map((step, i) => (
-                <li
-                  key={i}
-                  className="text-gray-300 border-l border-blue-700 pl-4"
-                >
-                  {step}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+      {/* ===== Active Phase Details ===== */}
+      <div>
+        <h2 className="text-xl font-semibold text-blue-400 mb-4">
+          {activeIndex + 1}. {activePhase.name}
+        </h2>
+
+        <ul className="space-y-3">
+          {activePhase.steps.map((step, index) => (
+            <li
+              key={index}
+              className="text-gray-300 border-l border-blue-800 pl-4"
+            >
+              {step}
+            </li>
+          ))}
+        </ul>
       </div>
-    </div>
+    </section>
   );
 }

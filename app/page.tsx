@@ -1,105 +1,78 @@
 "use client";
 
 import { useState } from "react";
-import Roadmap, { type Phase } from "@/components/Roadmap";
+import Roadmap, { Phase } from "@/components/Roadmap";
+
+const INITIAL_ROADMAP: Phase[] = [
+  {
+    name: "Planning",
+    steps: [
+      "Clarify the core idea",
+      "Define the problem to solve",
+      "Set clear goals for the roadmap",
+    ],
+  },
+  {
+    name: "Design",
+    steps: [
+      "Outline the main user flow",
+      "Decide what to include and exclude",
+      "Sketch a minimal interface",
+    ],
+  },
+  {
+    name: "Development",
+    steps: [
+      "Set up the project structure",
+      "Implement core functionality",
+      "Test basic interactions",
+    ],
+  },
+  {
+    name: "Launch",
+    steps: [
+      "Prepare a first release",
+      "Collect initial feedback",
+      "Iterate based on learnings",
+    ],
+  },
+];
 
 export default function Page() {
   const [idea, setIdea] = useState("");
   const [phases, setPhases] = useState<Phase[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  async function generateRoadmap() {
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await fetch("/api/generate-roadmap", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea }),
-      });
-
-      if (!res.ok) {
-        throw new Error("API failed");
-      }
-
-      const data = await res.json();
-      setPhases(data.phases);
-    } catch (e) {
-      // 🔥 FALLBACK LOCAL (CRÍTICO)
-      setPhases([
-        {
-          name: "Planning",
-          steps: [
-            "Define the problem clearly",
-            "Research similar products",
-            "Set clear MVP scope",
-          ],
-        },
-        {
-          name: "Design",
-          steps: [
-            "Sketch core user flow",
-            "Design minimal UI",
-            "Validate clarity of steps",
-          ],
-        },
-        {
-          name: "Development",
-          steps: [
-            "Set up project structure",
-            "Implement core logic",
-            "Test basic flows",
-          ],
-        },
-        {
-          name: "Launch",
-          steps: [
-            "Prepare demo",
-            "Collect early feedback",
-            "Iterate based on insights",
-          ],
-        },
-      ]);
-
-      setError(
-        "AI unavailable. Showing a local example roadmap."
-      );
-    } finally {
-      setLoading(false);
-    }
+  function generateLocalRoadmap() {
+    if (!idea.trim()) return;
+    setPhases(INITIAL_ROADMAP);
   }
 
   return (
     <main className="min-h-screen bg-[#0b0f19] text-white flex flex-col items-center px-6 py-16">
-      <h1 className="text-4xl font-bold mb-2">EYLA</h1>
-      <p className="text-gray-400 mb-8">
+      <h1 className="text-4xl font-bold mb-2 tracking-wide">EYLA</h1>
+      <p className="text-gray-400 mb-10">
         Turn ideas into clear paths.
       </p>
 
-      <input
-        className="w-full max-w-md p-3 bg-[#111827] border border-gray-700 rounded mb-4"
-        placeholder="Create a successful MVP"
-        value={idea}
-        onChange={(e) => setIdea(e.target.value)}
-      />
+      <div className="w-full max-w-md flex flex-col gap-4">
+        <input
+          value={idea}
+          onChange={(e) => setIdea(e.target.value)}
+          placeholder="Describe your idea..."
+          className="w-full p-3 rounded bg-[#111827] border border-gray-700 focus:outline-none focus:border-blue-500"
+        />
 
-      <button
-        onClick={generateRoadmap}
-        disabled={loading || !idea}
-        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-3 rounded transition"
-      >
-        {loading ? "Generating..." : "Generate Roadmap"}
-      </button>
+        <button
+          onClick={generateLocalRoadmap}
+          className="bg-blue-600 hover:bg-blue-700 transition rounded py-3 font-medium"
+        >
+          Generate roadmap
+        </button>
+      </div>
 
-      {error && (
-        <p className="text-yellow-400 mt-4 text-sm">
-          {error}
-        </p>
-      )}
-
-      {phases && <Roadmap phases={phases} />}
+      <div className="w-full mt-20 flex justify-center">
+        <Roadmap phases={phases} />
+      </div>
     </main>
   );
 }
