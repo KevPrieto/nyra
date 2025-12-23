@@ -5,10 +5,10 @@ EYLA is a minimalist AI-powered tool that transforms vague ideas into clear, act
 
 <img width="1024" height="1024" alt="eylaimage" src="https://github.com/user-attachments/assets/34f83357-1f81-409e-80bd-4b8b449898a6" />
 
-NYRA started with a simple frustration:
+EYLA started with a simple frustration:
 ideas are easy… clarity is not.
 
-This project is the first MVP of NYRA, a minimalist tool that helps you turn vague ideas into clear, structured, and actionable roadmaps — powered by a lightweight AI assistant.
+This project is the first MVP of EYLA, a minimalist tool that helps you turn vague ideas into clear, structured, and actionable roadmaps — powered by a lightweight AI assistant.
 
 No clutter.
 No dashboards.
