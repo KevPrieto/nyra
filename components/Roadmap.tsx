@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 /* ---------- types ---------- */
-
 export interface Step {
   id: string;
   text: string;
@@ -17,419 +16,241 @@ export interface Phase {
   steps: Step[];
 }
 
-interface RoadmapProps {
+type ThemeMode = "dark" | "light";
+
+type RoadmapProps = {
   phases: Phase[];
   setPhases: React.Dispatch<React.SetStateAction<Phase[]>>;
-}
+  theme?: ThemeMode;
+};
 
 /* ---------- helpers ---------- */
+function safeText(v: unknown) { return typeof v === "string" ? v : ""; }
+function uid() { return crypto.randomUUID(); }
+function clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
 
-function nextInPhase(phase: Phase | null) {
-  if (!phase) return null;
-  return phase.steps.find(s => !s.completed) ?? null;
+function getGlobalNext(phases: Phase[]) {
+  for (const phase of phases) {
+    for (const step of phase.steps) {
+      if (!step.completed) return { phaseId: phase.id, stepId: step.id };
+    }
+  }
+  return null;
 }
 
-function safeText(s?: string) {
-  const t = (s ?? "").trim();
-  return t.length ? t : "New step";
+function countDone(phases: Phase[]) {
+  let done = 0;
+  let total = 0;
+  for (const p of phases) {
+    for (const s of p.steps) {
+      total++;
+      if (s.completed) done++;
+    }
+  }
+  return { done, total };
 }
 
-/* ---------- component ---------- */
+function phaseDone(phase: Phase) {
+  return phase.steps.length > 0 && phase.steps.every((s) => s.completed);
+}
 
-export default function Roadmap({ phases, setPhases }: RoadmapProps) {
-  const [activePhaseId, setActivePhaseId] = useState<string>(phases[0]?.id ?? "");
+function buildMysticPath(points: { x: number; y: number }[]) {
+  if (points.length < 2) return "";
+  const p = points;
+  const d: string[] = [`M ${p[0].x} ${p[0].y}`];
+
+  for (let i = 1; i < p.length; i++) {
+    const prev = p[i - 1];
+    const cur = p[i];
+    const dy = cur.y - prev.y;
+    const c1x = prev.x;
+    const c1y = prev.y + dy * 0.5;
+    const c2x = cur.x;
+    const c2y = cur.y - dy * 0.5;
+    d.push(`C ${c1x} ${c1y}, ${c2x} ${c2y}, ${cur.x} ${cur.y}`);
+  }
+  return d.join(" ");
+}
+
+export default function Roadmap({ phases, setPhases, theme = "dark" }: RoadmapProps) {
+  const [activePhaseId, setActivePhaseId] = useState<string>(() => phases[0]?.id ?? "");
   const [launchOpen, setLaunchOpen] = useState(false);
 
-  // keep activePhaseId always valid (prevents crashes on phase change)
+  // Constantes de diseño (Sincronizadas)
+  const CARD_W = 400;
+  const GAP_Y = 180;
+  const TOP_PAD = 100;
+  const MID_X = 500; 
+  const SWAY = 180; // Antes había 160 vs 170, ahora 180 en ambos.
+  const DOT_R = 6;
+
   useEffect(() => {
     if (!phases.length) return;
-    if (!activePhaseId || !phases.some(p => p.id === activePhaseId)) {
-      setActivePhaseId(phases[0].id);
-    }
+    setActivePhaseId((prev) => {
+      const exists = phases.some((p) => p.id === prev);
+      return exists ? prev : phases[0].id;
+    });
+  }, [phases]);
+
+  const activePhase = useMemo(() => {
+    return phases.find((p) => p.id === activePhaseId) ?? phases[0] ?? null;
   }, [phases, activePhaseId]);
 
-  const activePhase = useMemo(
-    () => phases.find(p => p.id === activePhaseId) ?? null,
-    [phases, activePhaseId]
-  );
+  const nextGlobal = useMemo(() => getGlobalNext(phases), [phases]);
+  const { done, total } = useMemo(() => countDone(phases), [phases]);
+  const progressRatio = total === 0 ? 0 : done / total;
+  const allDone = total > 0 && done === total;
 
-  const nextStep = useMemo(() => nextInPhase(activePhase), [activePhase]);
+  const points = useMemo(() => {
+    if (!activePhase) return [];
+    return activePhase.steps.map((_, i) => ({
+      x: MID_X + (i % 2 === 0 ? -SWAY : SWAY),
+      y: TOP_PAD + i * GAP_Y + 70, // +70 para que el punto esté en el centro de la tarjeta
+    }));
+  }, [activePhase?.steps]);
 
-  const focusRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (focusRef.current) {
-      focusRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [nextStep?.id, activePhaseId]);
-
-  if (!activePhase) return null;
-
-  const steps = activePhase.steps;
-  const doneCount = steps.filter(s => s.completed).length;
-  const totalCount = steps.length || 1;
-  const progress = doneCount / totalCount;
-  const phaseCompleted = steps.length > 0 && steps.every(s => s.completed);
+  const pathD = useMemo(() => buildMysticPath(points), [points]);
+  const viewBoxH = points.length > 0 ? points[points.length - 1].y + 200 : 500;
 
   /* ---------- mutations ---------- */
-
-  function updateStep(stepId: string, text: string) {
-    setPhases(prev =>
-      prev.map(p =>
-        p.id === activePhaseId
-          ? { ...p, steps: p.steps.map(s => (s.id === stepId ? { ...s, text } : s)) }
-          : p
-      )
-    );
+  function updateStepText(stepId: string, text: string) {
+    setPhases(prev => prev.map(p => p.id !== activePhase?.id ? p : 
+      {...p, steps: p.steps.map(s => s.id === stepId ? {...s, text} : s)}
+    ));
   }
 
-  function toggleComplete(stepId: string) {
-    setPhases(prev =>
-      prev.map(p =>
-        p.id === activePhaseId
-          ? {
-              ...p,
-              steps: p.steps.map(s =>
-                s.id === stepId ? { ...s, completed: !s.completed } : s
-              )
-            }
-          : p
-      )
-    );
+  function toggleStep(stepId: string) {
+    setPhases(prev => prev.map(p => p.id !== activePhase?.id ? p : 
+      {...p, steps: p.steps.map(s => s.id === stepId ? {...s, completed: !s.completed} : s)}
+    ));
   }
 
   function addStep(afterIndex: number) {
-    setPhases(prev =>
-      prev.map(p =>
-        p.id === activePhaseId
-          ? {
-              ...p,
-              steps: [
-                ...p.steps.slice(0, afterIndex + 1),
-                { id: crypto.randomUUID(), text: "New step", completed: false },
-                ...p.steps.slice(afterIndex + 1)
-              ]
-            }
-          : p
-      )
-    );
+    setPhases(prev => prev.map(p => {
+      if (p.id !== activePhase?.id) return p;
+      const newStep = { id: uid(), text: "New step", completed: false };
+      const steps = [...p.steps];
+      steps.splice(afterIndex + 1, 0, newStep);
+      return { ...p, steps };
+    }));
   }
 
   function removeStep(stepId: string) {
-    setPhases(prev =>
-      prev.map(p =>
-        p.id === activePhaseId
-          ? { ...p, steps: p.steps.filter(s => s.id !== stepId) }
-          : p
-      )
-    );
+    setPhases(prev => prev.map(p => p.id !== activePhase?.id ? p : 
+      {...p, steps: p.steps.filter(s => s.id !== stepId).length ? p.steps.filter(s => s.id !== stepId) : p.steps}
+    ));
   }
 
-  /* ---------- UI ---------- */
+  const ui = useMemo(() => theme === "light" ? {
+    textMain: "text-slate-900",
+    textSub: "text-slate-600",
+    pillOn: "border-sky-500 text-sky-700 bg-white shadow-sm",
+    pillOff: "border-slate-200 text-slate-500 hover:bg-slate-50",
+    card: "bg-white/80 border-slate-200 backdrop-blur-md",
+    cardOff: "opacity-60",
+    glow: "shadow-xl",
+    input: "text-slate-900",
+    line: "rgba(2,132,199,0.5)",
+    dotActive: "#0284c7",
+    dotInactive: "#cbd5e1",
+    action: "text-sky-600 hover:bg-sky-50",
+    danger: "text-rose-500 hover:bg-rose-50",
+    badgeDone: "bg-sky-600 text-white",
+    badgeOpen: "bg-slate-100 text-slate-600"
+  } : {
+    textMain: "text-white",
+    textSub: "text-slate-400",
+    pillOn: "border-blue-500 text-blue-400 bg-blue-500/10",
+    pillOff: "border-slate-800 text-slate-500 hover:border-slate-700",
+    card: "bg-slate-900/60 border-slate-800 backdrop-blur-md",
+    cardOff: "opacity-50",
+    glow: "shadow-[0_0_30px_rgba(30,41,59,0.5)]",
+    input: "text-white",
+    line: "rgba(56,189,248,0.5)",
+    dotActive: "#38bdf8",
+    dotInactive: "#334155",
+    action: "text-blue-400 hover:bg-white/5",
+    danger: "text-rose-400 hover:bg-white/5",
+    badgeDone: "bg-blue-600 text-white",
+    badgeOpen: "bg-slate-800 text-slate-300"
+  }, [theme]);
+
+  if (!activePhase) return null;
 
   return (
-    <section className="w-full max-w-5xl relative">
-      {/* defs for “aura” */}
-      <svg width="0" height="0" className="absolute">
-        <defs>
-          <linearGradient id="eylaTrail" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="rgba(59,130,246,0.65)" />
-            <stop offset="55%" stopColor="rgba(34,211,238,0.55)" />
-            <stop offset="100%" stopColor="rgba(59,130,246,0.35)" />
-          </linearGradient>
-
-          <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3.5" result="blur" />
-            <feColorMatrix
-              in="blur"
-              type="matrix"
-              values="
-                1 0 0 0 0
-                0 1 0 0 0
-                0 0 1 0 0
-                0 0 0 0.35 0"
-              result="glow"
-            />
-            <feMerge>
-              <feMergeNode in="glow" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-      </svg>
-
-      {/* PHASE PILLS */}
-      <div className="flex justify-center gap-3 mb-10">
+    <div className="relative w-full">
+      {/* Tabs */}
+      <div className="flex justify-center gap-2 mb-12">
         {phases.map(p => (
           <button
             key={p.id}
             onClick={() => setActivePhaseId(p.id)}
-            className={`px-4 py-2 rounded-full border transition-all duration-200 hover:scale-[1.03] ${
-              p.id === activePhaseId
-                ? "border-blue-400 text-blue-300 shadow-blue-500/10 shadow-lg"
-                : "border-gray-700 text-gray-400 hover:border-gray-500"
-            }`}
+            className={`px-5 py-2 rounded-full border text-sm font-medium transition-all ${p.id === activePhaseId ? ui.pillOn : ui.pillOff}`}
           >
             {p.name}
           </button>
         ))}
       </div>
 
-      {/* FOCUS */}
-      <div className="text-center mb-12">
-        <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Focus now</p>
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={nextStep?.id ?? `done-${activePhaseId}`}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.22 }}
-          >
-            <h2 className="text-4xl font-semibold text-blue-300">
-              {nextStep ? safeText(nextStep.text) : "Phase completed"}
-            </h2>
-            <div className="mt-3 text-sm text-gray-400">
-              {nextStep ? "This step unlocks momentum. Keep going." : "Everything is done here. You can launch."}
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* PROGRESS */}
-      <div className="w-full max-w-xl mx-auto mb-14">
-        <div className="h-2 rounded-full bg-white/5 border border-white/10 overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${Math.round(progress * 100)}%`,
-              background: "linear-gradient(90deg, rgba(59,130,246,0.9), rgba(34,211,238,0.8))"
-            }}
+      {/* Progress */}
+      <div className="text-center mb-16">
+        <h2 className={`text-4xl font-bold mb-4 ${ui.textMain}`}>
+          {phaseDone(activePhase) ? "Phase Completed" : (activePhase.steps.find(s => !s.completed)?.text || "Next Step")}
+        </h2>
+        <div className="max-w-md mx-auto h-1.5 bg-slate-800/30 rounded-full overflow-hidden">
+          <motion.div 
+            animate={{ width: `${progressRatio * 100}%` }}
+            className="h-full bg-gradient-to-r from-blue-500 to-cyan-400"
           />
         </div>
-        <div className="mt-2 text-xs text-gray-500 text-center">
-          {doneCount}/{steps.length} completed
-        </div>
       </div>
 
-      {/* PATH LIST */}
-      <div className="relative flex flex-col items-center gap-16 pb-10">
-        {steps.map((step, i) => {
-          const isNext = nextStep?.id === step.id;
+      <div className="relative mx-auto" style={{ width: '1000px', height: viewBoxH }}>
+        {/* SVG Path */}
+        <svg viewBox={`0 0 1000 ${viewBoxH}`} className="absolute inset-0 w-full h-full pointer-events-none">
+          <path d={pathD} fill="none" stroke={ui.line} strokeWidth="3" strokeDasharray="8 8" />
+          {points.map((pt, i) => (
+            <circle key={i} cx={pt.x} cy={pt.y} r={DOT_R} fill={activePhase.steps[i].completed ? ui.dotActive : ui.dotInactive} />
+          ))}
+        </svg>
 
-          // subtle zigzag to feel like a “trail”
+        {/* Step Cards */}
+        {activePhase.steps.map((step, i) => {
           const side = i % 2 === 0 ? -1 : 1;
-          const x = side * 56;
-
-          const hasNext = i < steps.length - 1;
-          const curveDir = side;
-
-          // node + ring aura
-          const nodeBase =
-            step.completed ? "bg-cyan-300" : isNext ? "bg-blue-400" : "bg-white/20";
-          const ring =
-            step.completed ? "ring-2 ring-cyan-300/25" : isNext ? "ring-2 ring-blue-400/35" : "ring-1 ring-white/15";
-
-          // card emphasis
-          const cardBorder = isNext ? "border-blue-400" : "border-white/10";
-          const cardHover = "hover:border-white/20 hover:shadow-xl hover:shadow-blue-500/5";
-
-          // connector color by state of CURRENT step (segment leaving it)
-          const segmentKind = step.completed ? "completed" : isNext ? "active" : "future";
-
           return (
-            <div key={step.id} className="relative w-full flex justify-center">
-              <motion.div
-                ref={isNext ? focusRef : null}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: step.completed ? 0.92 : 1, y: 0, scale: isNext ? 1.02 : 1 }}
-                transition={{ duration: 0.25 }}
-                whileHover={{ scale: 1.03 }}
-                className="relative"
-                style={{ transform: `translateX(${x}px)` }}
-              >
-                {/* NODE */}
-                <div className="absolute left-1/2 -translate-x-1/2 -top-6">
-                  <motion.div
-                    className={`w-3.5 h-3.5 rounded-full ${nodeBase} ${ring} shadow-lg`}
-                    style={{ filter: "drop-shadow(0 0 14px rgba(59,130,246,0.18))" }}
-                    animate={isNext ? { scale: [1, 1.25, 1] } : {}}
-                    transition={isNext ? { repeat: Infinity, duration: 1.2 } : {}}
-                  />
-                </div>
-
-                {/* CARD */}
-                <div
-                  className={`bg-[#111827]/80 backdrop-blur-sm border ${cardBorder} ${cardHover} rounded-2xl px-10 py-6 w-[34rem] transition-all`}
-                >
-                  <input
-                    value={step.text}
-                    onChange={e => updateStep(step.id, e.target.value)}
-                    className="w-full bg-transparent outline-none text-center text-lg font-medium placeholder:text-gray-600"
-                    placeholder="Describe this step..."
-                  />
-
-                  {/* ACTIONS */}
-                  <div className="mt-5 flex items-center justify-between">
-                    <button
-                      onClick={() => addStep(i)}
-                      className="text-sm px-3 py-2 rounded-lg text-blue-200 hover:text-blue-100 hover:bg-blue-500/10 transition"
-                      title="Add a step after this one"
-                    >
-                      + Add step
-                    </button>
-
-                    <button
-                      onClick={() => toggleComplete(step.id)}
-                      className={`text-sm px-5 py-2 rounded-full font-semibold transition ${
-                        step.completed
-                          ? "bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25"
-                          : "bg-blue-500/20 text-blue-200 hover:bg-blue-500/30"
-                      }`}
-                      title={step.completed ? "Reopen this step" : "Mark as done"}
-                    >
-                      {step.completed ? "REOPEN" : "DONE"}
-                    </button>
-
-                    <button
-                      onClick={() => removeStep(step.id)}
-                      className="text-sm px-3 py-2 rounded-lg text-red-300 hover:text-red-200 hover:bg-red-500/10 transition"
-                      title="Remove this step"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* CONNECTOR CURVE (the “mystic trail”) */}
-              {hasNext && (
-                <svg
-                  className="absolute left-1/2 -translate-x-1/2 top-[96px] pointer-events-none"
-                  width="190"
-                  height="120"
-                  viewBox="0 0 190 120"
-                  aria-hidden="true"
-                >
-                  {/* faint base trail */}
-                  <path
-                    d={
-                      curveDir === -1
-                        ? "M95 0 C 42 32, 148 86, 95 120"
-                        : "M95 0 C 148 32, 42 86, 95 120"
-                    }
-                    fill="none"
-                    stroke="rgba(255,255,255,0.05)"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  />
-
-                  {/* colored trail */}
-                  <motion.path
-                    d={
-                      curveDir === -1
-                        ? "M95 0 C 42 32, 148 86, 95 120"
-                        : "M95 0 C 148 32, 42 86, 95 120"
-                    }
-                    fill="none"
-                    stroke={
-                      segmentKind === "completed"
-                        ? "rgba(34,211,238,0.55)"
-                        : segmentKind === "active"
-                        ? "url(#eylaTrail)"
-                        : "rgba(59,130,246,0.22)"
-                    }
-                    strokeWidth={segmentKind === "active" ? 2.6 : 2}
-                    strokeLinecap="round"
-                    strokeDasharray={segmentKind === "future" ? "6 10" : "0"}
-                    filter={segmentKind === "active" ? "url(#softGlow)" : undefined}
-                    animate={
-                      segmentKind === "active"
-                        ? { strokeDashoffset: [0, -22] }
-                        : {}
-                    }
-                    transition={
-                      segmentKind === "active"
-                        ? { repeat: Infinity, duration: 1.6, ease: "linear" }
-                        : {}
-                    }
-                  />
-                </svg>
-              )}
-            </div>
-          );
-        })}
-
-        {/* LAUNCH (no alert, cinematic overlay) */}
-        <motion.button
-          disabled={!phaseCompleted}
-          whileHover={phaseCompleted ? { scale: 1.05 } : {}}
-          whileTap={phaseCompleted ? { scale: 0.98 } : {}}
-          className={`mt-10 px-10 py-3 rounded-full border transition-all text-sm font-semibold tracking-wide ${
-            phaseCompleted
-              ? "border-blue-400 text-blue-200 hover:bg-blue-500/10 shadow-blue-500/10 shadow-xl"
-              : "border-white/10 text-gray-600 cursor-not-allowed"
-          }`}
-          title={phaseCompleted ? "Ready to launch" : "Complete this phase to unlock launch"}
-          onClick={() => {
-            if (!phaseCompleted) return;
-            setLaunchOpen(true);
-          }}
-        >
-          Launch
-        </motion.button>
-      </div>
-
-      {/* LAUNCH OVERLAY (soft, not intrusive) */}
-      <AnimatePresence>
-        {launchOpen && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center px-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
             <motion.div
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setLaunchOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 18, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 18, scale: 0.98 }}
-              transition={{ duration: 0.22 }}
-              className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-[#0b1220] p-8 shadow-2xl shadow-blue-500/10"
+              key={step.id}
+              initial={{ opacity: 0, x: side * 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="absolute"
+              style={{
+                top: TOP_PAD + i * GAP_Y,
+                left: `calc(50% + ${side * SWAY}px)`,
+                width: CARD_W,
+                transform: 'translateX(-50%)' // Esto centra la tarjeta sobre el punto
+              }}
             >
-              <div className="text-xs uppercase tracking-widest text-gray-500 mb-2">
-                Launch moment
-              </div>
-              <div className="text-3xl font-semibold text-blue-300">
-                You’re ready.
-              </div>
-              <p className="mt-3 text-gray-400">
-                This is the start of execution. Next: a cinematic launch flow + project dashboard.
-              </p>
-
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  onClick={() => setLaunchOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-white/10 text-gray-300 hover:border-white/20 hover:text-white transition"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => setLaunchOpen(false)}
-                  className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition font-semibold"
-                >
-                  Continue
-                </button>
+              <div className={`p-6 rounded-2xl border transition-all ${ui.card} ${ui.glow} ${!step.completed && ui.cardOff}`}>
+                <input
+                  value={step.text}
+                  onChange={(e) => updateStepText(step.id, e.target.value)}
+                  className={`w-full bg-transparent font-semibold text-lg outline-none mb-4 ${ui.input}`}
+                />
+                <div className="flex justify-between items-center">
+                  <button onClick={() => addStep(i)} className={`text-xs font-bold px-2 py-1 rounded ${ui.action}`}>+ STEP</button>
+                  <button 
+                    onClick={() => toggleStep(step.id)}
+                    className={`px-4 py-1.5 rounded-full text-[10px] font-black tracking-tighter ${step.completed ? ui.badgeDone : ui.badgeOpen}`}
+                  >
+                    {step.completed ? "COMPLETED" : "MARK DONE"}
+                  </button>
+                  <button onClick={() => removeStep(step.id)} className={`text-xs font-bold px-2 py-1 rounded ${ui.danger}`}>REMOVE</button>
+                </div>
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </section>
+          );
+        })}
+      </div>
+    </div>
   );
 }
-
